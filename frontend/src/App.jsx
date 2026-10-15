@@ -19,12 +19,15 @@ const getInitialApiBase = () => {
   if (stored) return stored;
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
   if (typeof window !== 'undefined') {
+    if (window.location.hostname.includes('onrender.com')) {
+      return 'https://parentcare360-api.onrender.com';
+    }
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:8000';
     }
     return `http://${window.location.hostname}:8000`;
   }
-  return 'http://localhost:8000';
+  return 'https://parentcare360-api.onrender.com';
 };
 
 export default function App() {
