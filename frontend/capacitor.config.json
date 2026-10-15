@@ -1,0 +1,9 @@
+{
+  "appId": "com.parentcare360.app",
+  "appName": "ParentCare360",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

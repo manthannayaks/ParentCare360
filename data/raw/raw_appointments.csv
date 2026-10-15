@@ -1,0 +1,6 @@
+parent_id,doctor_name,hospital_clinic,appointment_date,appointment_time,purpose,status
+1,Dr. V. S. Mehta,Apollo Hospital Jodhpur,2026-09-20,11:30 AM,Eye Vision Test,upcoming
+2,Dr. R. K. Goyal,SMS Hospital Jaipur,2026-09-18,03:00 PM,General Health Check,COMPLETED
+999,Dr. Unknown,Ghost Hospital,INVALID-DATE,12:00 PM,Test,Upcoming
+1,Dr. V. S. Mehta,Apollo Hospital Jodhpur,2026-09-20,11:30 AM,Eye Vision Test,upcoming
+3,Dr. Anita Sen,Poona Clinic,2026-09-22,09:00 AM,BP Checkup,upcoming
