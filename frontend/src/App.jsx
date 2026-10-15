@@ -17,6 +17,7 @@ import OpsDagMode from './components/OpsDagMode';
 const getInitialApiBase = () => {
   const stored = localStorage.getItem('parentcare360_api_base');
   if (stored) return stored;
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
   if (typeof window !== 'undefined') {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:8000';

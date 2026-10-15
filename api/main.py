@@ -27,6 +27,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+def on_startup():
+    """Ensure database schema and pre-seeded demo accounts exist on cloud startup."""
+    from database.db import init_db, get_connection
+    from database.seed_data import seed_database
+    init_db()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT count(*) as count FROM users")
+        row = cursor.fetchone()
+        user_count = row["count"] if row else 0
+        conn.close()
+        if user_count == 0:
+            seed_database()
+    except Exception as e:
+        print(f"Startup database initialization error: {e}")
+
+@app.get("/")
+def health_check():
+    return {
+        "status": "online",
+        "service": "ParentCare360 Live API Gateway",
+        "version": "2.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
 # WebSocket Connection Manager for Real-Time Alerts
 class ConnectionManager:
     def __init__(self):
