@@ -340,6 +340,31 @@ export default function RoleAuthScreen({ onSelectRole, apiBase, onUpdateApiBase 
             );
           })}
         </div>
+
+        {/* Quick Access to Admin & Test User Panel */}
+        <button
+          onClick={() => onSelectRole('ops', 0, 'Admin', { role: 'ops', id: 0, name: 'System Admin' })}
+          style={{
+            marginTop: '14px',
+            width: '100%',
+            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(20, 184, 166, 0.2))',
+            border: '1px solid rgba(6, 182, 212, 0.5)',
+            color: '#67e8f9',
+            borderRadius: '14px',
+            padding: '12px 14px',
+            fontSize: '12px',
+            fontWeight: '800',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 14px rgba(6, 182, 212, 0.15)'
+          }}
+        >
+          <ShieldCheck size={16} />
+          <span>🛠️ Admin Panel: Create & Add Test Users</span>
+        </button>
       </div>
 
       {/* Footer / Server Settings */}

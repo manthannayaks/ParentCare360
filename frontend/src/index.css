@@ -243,6 +243,23 @@ body {
   background: #090d16;
 }
 
+@media (max-width: 600px) {
+  .mobile-phone-frame {
+    max-width: 100% !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .phone-speaker-notch {
+    display: none !important;
+  }
+  .main-stage {
+    padding: 0 !important;
+  }
+}
+
 /* Common Card Components */
 .card-glass {
   background: var(--bg-card);

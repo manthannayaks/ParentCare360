@@ -13,6 +13,7 @@ import FamilyExperience from './components/FamilyExperience';
 import CaregiverExperience from './components/CaregiverExperience';
 import DoctorExperience from './components/DoctorExperience';
 import OpsDagMode from './components/OpsDagMode';
+import AdminPanel from './components/AdminPanel';
 
 const getInitialApiBase = () => {
   const stored = localStorage.getItem('parentcare360_api_base');
@@ -37,7 +38,6 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [viewMode, setViewMode] = useState('phone'); // 'phone' | 'desktop'
   const [selectedParentId, setSelectedParentId] = useState(1);
 
   // Application Data States
@@ -317,264 +317,110 @@ export default function App() {
     );
   }
 
+  const handleQuickLoginAsUser = (user) => {
+    const normalizedRole = user.role === 'parent' ? 'parent' : user.role === 'child' ? 'child' : user.role;
+    const persona = {
+      role: normalizedRole,
+      id: user.id,
+      name: user.full_name || user.username,
+      rawUser: user
+    };
+    localStorage.setItem('parentcare360_current_user', JSON.stringify(persona));
+    setCurrentUser(persona);
+    if (normalizedRole === 'parent' || normalizedRole === 'elder') {
+      setSelectedParentId(user.id);
+    }
+  };
+
   return (
     <div className="app-viewport">
-      {/* GLOBAL TOP NAVIGATION & CONTROL BAR */}
-      <header className="top-control-bar">
-        {/* Brand */}
-        <div className="brand-section">
-          <div className="brand-logo">P</div>
-          <div>
-            <div className="brand-title">ParentCare360</div>
-            <div className="brand-subtitle">Remote Elder Coordination Platform</div>
-          </div>
-        </div>
-
-        {/* Current Active Persona & Switcher Pills */}
-        <div className="persona-pills">
-          <button 
-            className={`persona-btn ${currentUser.role === 'elder' ? 'active' : ''}`}
-            onClick={() => handleSelectRole('elder', 1, 'Ravi Kumar')}
-          >
-            👴 Parent
-          </button>
-          <button 
-            className={`persona-btn ${currentUser.role === 'family' ? 'active' : ''}`}
-            onClick={() => handleSelectRole('family', 1, 'Amit Kumar')}
-          >
-            👨‍👩‍👧 Family
-          </button>
-          <button 
-            className={`persona-btn ${currentUser.role === 'caregiver' ? 'active' : ''}`}
-            onClick={() => handleSelectRole('caregiver', 1, 'Priya Verma')}
-          >
-            🧑‍⚕️ Caregiver
-          </button>
-          <button 
-            className={`persona-btn ${currentUser.role === 'doctor' ? 'active' : ''}`}
-            onClick={() => handleSelectRole('doctor', 1, 'Dr. A. K. Sharma')}
-          >
-            🩺 Doctor
-          </button>
-          <button 
-            className={`persona-btn ${currentUser.role === 'ops' ? 'active' : ''}`}
-            onClick={() => handleSelectRole('ops', 0, 'DAG Admin')}
-          >
-            ⚙️ DAG Ops
-          </button>
-        </div>
-
-        {/* View Mode Toggle: Phone Mockup Frame vs Desktop Wide */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            className="view-toggle-btn"
-            onClick={() => setViewMode(viewMode === 'phone' ? 'desktop' : 'phone')}
-            title="Toggle between Mobile Phone Mockup and Full Desktop View"
-          >
-            {viewMode === 'phone' ? <Monitor size={15} /> : <Smartphone size={15} />}
-            <span>{viewMode === 'phone' ? 'Expand' : 'Phone'}</span>
-          </button>
-
-          <button onClick={fetchData} className="view-toggle-btn" title="Refresh Live Data">
-            <RefreshCw size={15} />
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="view-toggle-btn"
-            style={{ color: '#f87171' }}
-            title="Sign Out to Role Selection"
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-      </header>
-
-      {/* TOP CRITICAL EMERGENCY BANNER IF ACTIVE */}
-      {criticalAlerts.length > 0 && (
-        <div style={{ background: 'linear-gradient(90deg, #991b1b, #dc2626)', color: '#fff', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', fontWeight: '700' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <AlertOctagon size={18} />
-            <span>CRITICAL RISK ALERT: {criticalAlerts[0].alert_type} — {criticalAlerts[0].message}</span>
-          </div>
-          <button 
-            onClick={() => handleResolveAlert(criticalAlerts[0].id)}
-            style={{ background: '#fff', color: '#dc2626', border: 'none', padding: '4px 12px', borderRadius: '6px', fontWeight: '800', cursor: 'pointer', fontSize: '12px' }}
-          >
-            Acknowledge & Resolve
-          </button>
-        </div>
-      )}
-
-      {/* MAIN VIEWPORT STAGE */}
+      {/* PURE PROFESSIONAL MOBILE-FIRST PHONE VIEWPORT */}
       <main className="main-stage">
-        {viewMode === 'phone' ? (
-          /* Phone Frame Mode (APK Simulation) */
-          <div className="mobile-frame-wrapper">
-            <div className="mobile-phone-frame">
-              {/* Speaker Notch */}
-              <div className="phone-speaker-notch">
-                <div className="camera-dot"></div>
-              </div>
+        <div className="mobile-frame-wrapper">
+          <div className="mobile-phone-frame">
+            {/* Speaker & Sensor Notch */}
+            <div className="phone-speaker-notch">
+              <div className="camera-dot"></div>
+            </div>
 
-              {/* Persona Content */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                {(currentUser.role === 'elder' || currentUser.role === 'parent') && (
-                  <ParentExperience
-                    parent={currentParentDetail}
-                    currentUser={currentUser}
-                    apiBase={apiBase}
-                    onTriggerSOS={handleTriggerSOS}
-                    onSendVoiceRequest={handleSendVoiceRequest}
-                    onHeartbeat={handleHeartbeat}
-                    onShareLocation={handleShareLocation}
-                    appointments={appointments}
-                    caregiverVisits={caregiverVisits}
-                    documents={documents}
-                    onLogout={handleLogout}
-                  />
-                )}
+            {/* Persona Content - STRICTLY ISOLATED BY LOGGED-IN ROLE */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+              {(currentUser.role === 'elder' || currentUser.role === 'parent') && (
+                <ParentExperience
+                  parent={currentParentDetail}
+                  currentUser={currentUser}
+                  apiBase={apiBase}
+                  onTriggerSOS={handleTriggerSOS}
+                  onSendVoiceRequest={handleSendVoiceRequest}
+                  onHeartbeat={handleHeartbeat}
+                  onShareLocation={handleShareLocation}
+                  appointments={appointments}
+                  caregiverVisits={caregiverVisits}
+                  documents={documents}
+                  onLogout={handleLogout}
+                />
+              )}
 
-                {(currentUser.role === 'family' || currentUser.role === 'child') && (
-                  <FamilyExperience
-                    familyUser={currentUser}
-                    parent={currentParentDetail}
-                    parentsList={parents}
-                    apiBase={apiBase}
-                    onSelectParent={setSelectedParentId}
-                    alerts={alerts}
-                    appointments={appointments}
-                    caregiverVisits={caregiverVisits}
-                    requests={requests}
-                    timeline={timeline}
-                    documents={documents}
-                    parentLocation={parentLocation}
-                    locationFreshness={locationFreshness}
-                    travelJourneys={travelJourneys}
-                    onResolveAlert={handleResolveAlert}
-                    onCreateRequest={handleCreateRequest}
-                    onUpdateRequestStatus={handleUpdateRequestStatus}
-                    onCoordinateTravel={handleCoordinateTravel}
-                    onCreateAppointment={handleCreateAppointment}
-                    onCreateDocument={handleCreateDocument}
-                    onLogout={handleLogout}
-                  />
-                )}
+              {(currentUser.role === 'family' || currentUser.role === 'child') && (
+                <FamilyExperience
+                  familyUser={currentUser}
+                  parent={currentParentDetail}
+                  parentsList={parents}
+                  apiBase={apiBase}
+                  onSelectParent={setSelectedParentId}
+                  alerts={alerts}
+                  appointments={appointments}
+                  caregiverVisits={caregiverVisits}
+                  requests={requests}
+                  timeline={timeline}
+                  documents={documents}
+                  parentLocation={parentLocation}
+                  locationFreshness={locationFreshness}
+                  travelJourneys={travelJourneys}
+                  onResolveAlert={handleResolveAlert}
+                  onCreateRequest={handleCreateRequest}
+                  onUpdateRequestStatus={handleUpdateRequestStatus}
+                  onCoordinateTravel={handleCoordinateTravel}
+                  onCreateAppointment={handleCreateAppointment}
+                  onCreateDocument={handleCreateDocument}
+                  onLogout={handleLogout}
+                />
+              )}
 
-                {currentUser.role === 'caregiver' && (
-                  <CaregiverExperience
-                    caregiver={caregivers.find(c => c.id === currentUser.id) || caregivers[0]}
-                    caregiversList={caregivers}
-                    onSelectCaregiver={(id) => handleSelectRole('caregiver', id, caregivers.find(c => c.id === id)?.full_name || 'Caregiver')}
-                    visits={caregiverVisits}
-                    onCheckinVisit={handleCheckinVisit}
-                    onLogout={handleLogout}
-                  />
-                )}
+              {currentUser.role === 'caregiver' && (
+                <CaregiverExperience
+                  caregiver={caregivers.find(c => c.id === currentUser.id) || caregivers[0]}
+                  caregiversList={caregivers}
+                  onSelectCaregiver={(id) => handleSelectRole('caregiver', id, caregivers.find(c => c.id === id)?.full_name || 'Caregiver')}
+                  visits={caregiverVisits}
+                  onCheckinVisit={handleCheckinVisit}
+                  onLogout={handleLogout}
+                />
+              )}
 
-                {currentUser.role === 'doctor' && (
-                  <DoctorExperience
-                    doctor={doctorDashboard?.doctor || doctorsList.find(d => d.id === currentUser.id) || doctorsList[0]}
-                    doctorsList={doctorsList}
-                    onSelectDoctor={(id) => handleSelectRole('doctor', id, doctorsList.find(d => d.id === id)?.full_name || 'Doctor')}
-                    appointments={doctorDashboard?.appointments || appointments}
-                    patients={doctorDashboard?.patients || parents}
-                    documents={doctorDashboard?.documents || documents}
-                    onUpdateDoctorNotes={handleUpdateDoctorNotes}
-                    onLogout={handleLogout}
-                  />
-                )}
+              {currentUser.role === 'doctor' && (
+                <DoctorExperience
+                  doctor={doctorDashboard?.doctor || doctorsList.find(d => d.id === currentUser.id) || doctorsList[0]}
+                  doctorsList={doctorsList}
+                  onSelectDoctor={(id) => handleSelectRole('doctor', id, doctorsList.find(d => d.id === id)?.full_name || 'Doctor')}
+                  appointments={doctorDashboard?.appointments || appointments}
+                  patients={doctorDashboard?.patients || parents}
+                  documents={doctorDashboard?.documents || documents}
+                  onUpdateDoctorNotes={handleUpdateDoctorNotes}
+                  onLogout={handleLogout}
+                />
+              )}
 
-                {currentUser.role === 'ops' && (
-                  <OpsDagMode
-                    onRunPipeline={handleRunPipeline}
-                    onSimulateEdgeCase={handleSimulateEdgeCase}
-                    quarantineRecords={quarantineRecords}
-                    lastPipelineResult={lastPipelineResult}
-                  />
-                )}
-              </div>
+              {(currentUser.role === 'ops' || currentUser.role === 'admin') && (
+                <AdminPanel
+                  apiBase={apiBase}
+                  onLogout={handleLogout}
+                  onSelectUser={handleQuickLoginAsUser}
+                />
+              )}
             </div>
           </div>
-        ) : (
-          /* Desktop Wide Mode */
-          <div className="desktop-view-container">
-            {(currentUser.role === 'elder' || currentUser.role === 'parent') && (
-              <ParentExperience
-                parent={currentParentDetail}
-                currentUser={currentUser}
-                apiBase={apiBase}
-                onTriggerSOS={handleTriggerSOS}
-                onSendVoiceRequest={handleSendVoiceRequest}
-                onHeartbeat={handleHeartbeat}
-                onShareLocation={handleShareLocation}
-                appointments={appointments}
-                caregiverVisits={caregiverVisits}
-                documents={documents}
-                onLogout={handleLogout}
-              />
-            )}
-
-            {(currentUser.role === 'family' || currentUser.role === 'child') && (
-              <FamilyExperience
-                familyUser={currentUser}
-                parent={currentParentDetail}
-                parentsList={parents}
-                apiBase={apiBase}
-                onSelectParent={setSelectedParentId}
-                alerts={alerts}
-                appointments={appointments}
-                caregiverVisits={caregiverVisits}
-                requests={requests}
-                timeline={timeline}
-                documents={documents}
-                parentLocation={parentLocation}
-                locationFreshness={locationFreshness}
-                travelJourneys={travelJourneys}
-                onResolveAlert={handleResolveAlert}
-                onCreateRequest={handleCreateRequest}
-                onUpdateRequestStatus={handleUpdateRequestStatus}
-                onCoordinateTravel={handleCoordinateTravel}
-                onCreateAppointment={handleCreateAppointment}
-                onCreateDocument={handleCreateDocument}
-                onLogout={handleLogout}
-              />
-            )}
-
-            {currentUser.role === 'caregiver' && (
-              <CaregiverExperience
-                caregiver={caregivers.find(c => c.id === currentUser.id) || caregivers[0]}
-                caregiversList={caregivers}
-                onSelectCaregiver={(id) => handleSelectRole('caregiver', id, caregivers.find(c => c.id === id)?.full_name || 'Caregiver')}
-                visits={caregiverVisits}
-                onCheckinVisit={handleCheckinVisit}
-                onLogout={handleLogout}
-              />
-            )}
-
-            {currentUser.role === 'doctor' && (
-              <DoctorExperience
-                doctor={doctorDashboard?.doctor || doctorsList.find(d => d.id === currentUser.id) || doctorsList[0]}
-                doctorsList={doctorsList}
-                onSelectDoctor={(id) => handleSelectRole('doctor', id, doctorsList.find(d => d.id === id)?.full_name || 'Doctor')}
-                appointments={doctorDashboard?.appointments || appointments}
-                patients={doctorDashboard?.patients || parents}
-                documents={doctorDashboard?.documents || documents}
-                onUpdateDoctorNotes={handleUpdateDoctorNotes}
-                onLogout={handleLogout}
-              />
-            )}
-
-            {currentUser.role === 'ops' && (
-              <OpsDagMode
-                onRunPipeline={handleRunPipeline}
-                onSimulateEdgeCase={handleSimulateEdgeCase}
-                quarantineRecords={quarantineRecords}
-                lastPipelineResult={lastPipelineResult}
-              />
-            )}
-          </div>
-        )}
+        </div>
       </main>
     </div>
   );

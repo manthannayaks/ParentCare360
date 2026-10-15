@@ -560,27 +560,52 @@ export default function ParentExperience({
           </div>
         </div>
 
-        {/* Invitation Code Pill */}
-        <button
-          onClick={handleCopyCode}
-          style={{
-            background: 'rgba(20, 184, 166, 0.15)',
-            border: '1px solid rgba(20, 184, 166, 0.35)',
-            color: '#5eead4',
-            padding: '4px 10px',
-            borderRadius: '99px',
-            fontSize: '11px',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            cursor: 'pointer'
-          }}
-          title="Click to copy your unique family invitation code"
-        >
-          <Copy size={12} />
-          <span>{copiedCode ? 'Copied!' : invitationCode}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Invitation Code Pill */}
+          <button
+            onClick={handleCopyCode}
+            style={{
+              background: 'rgba(20, 184, 166, 0.15)',
+              border: '1px solid rgba(20, 184, 166, 0.35)',
+              color: '#5eead4',
+              padding: '4px 10px',
+              borderRadius: '99px',
+              fontSize: '11px',
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              cursor: 'pointer'
+            }}
+            title="Click to copy your unique family invitation code"
+          >
+            <Copy size={12} />
+            <span>{copiedCode ? 'Copied!' : invitationCode}</span>
+          </button>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#f87171',
+                borderRadius: '99px',
+                padding: '4px 8px',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Sign Out to Login"
+            >
+              <LogOut size={12} />
+              <span>Sign Out</span>
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Main Content Scroll Area */}

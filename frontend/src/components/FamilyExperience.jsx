@@ -224,7 +224,14 @@ export default function FamilyExperience({
   // Handle Send Connection Request (Feature 2)
   const handleSendConnectionRequest = async (e) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
+    const ident = searchQuery.trim();
+    if (!ident) return;
+
+    // Check if user is searching for themselves
+    if (familyUser && (ident.toLowerCase() === familyUser.username?.toLowerCase() || ident.toUpperCase() === familyUser.invitation_code?.toUpperCase())) {
+      setConnectError(`You are logged in as "${familyUser.full_name || familyUser.username}". Please enter your parent's code (e.g. JOE-7401).`);
+      return;
+    }
 
     setConnectLoading(true);
     setConnectMessage('');
@@ -236,7 +243,7 @@ export default function FamilyExperience({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           requester_user_id: currentUserId,
-          target_identifier: searchQuery.trim(),
+          target_identifier: ident,
           relationship_type: relationshipType
         })
       });
@@ -245,7 +252,14 @@ export default function FamilyExperience({
         throw new Error(data.detail || 'Failed to send connection request');
       }
 
-      setConnectMessage(`Connection request sent to ${data.recipient_name || searchQuery}! Waiting for approval.`);
+      if (data.status === 'Already Pending') {
+        setConnectMessage(`Connection request is already pending approval from ${data.recipient_name || 'parent'}.`);
+      } else if (data.status === 'Already Connected') {
+        setConnectMessage(`You are already connected with ${data.recipient_name || 'parent'}!`);
+      } else {
+        setConnectMessage(`Connection request sent to ${data.recipient_name || ident}! Waiting for approval.`);
+      }
+
       fetchConnections();
       setTimeout(() => {
         setShowConnectModal(false);
@@ -340,26 +354,50 @@ export default function FamilyExperience({
           </div>
         </div>
 
-        {/* Connect a Parent Action */}
-        <button
-          onClick={() => setShowConnectModal(true)}
-          style={{
-            background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '99px',
-            padding: '6px 12px',
-            fontSize: '11px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          <Plus size={13} />
-          <span>Connect Parent</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={() => setShowConnectModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '99px',
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Plus size={13} />
+            <span>Connect Parent</span>
+          </button>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#f87171',
+                borderRadius: '99px',
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Sign Out"
+            >
+              <LogOut size={13} />
+              <span>Sign Out</span>
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Emergency Alert Banner */}
