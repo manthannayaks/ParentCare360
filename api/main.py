@@ -31,7 +31,7 @@ app.add_middleware(
 def on_startup():
     """Ensure database schema and pre-seeded demo accounts exist on cloud startup."""
     from database.db import init_db, get_connection
-    from database.seed_data import seed_database
+    from database.seed_data import seed_all
     init_db()
     try:
         conn = get_connection()
@@ -41,7 +41,7 @@ def on_startup():
         user_count = row["count"] if row else 0
         conn.close()
         if user_count == 0:
-            seed_database()
+            seed_all()
     except Exception as e:
         print(f"Startup database initialization error: {e}")
 

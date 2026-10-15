@@ -207,5 +207,7 @@ def seed_all():
     conn.close()
     print("Database successfully seeded with synthetic data!")
 
+seed_database = seed_all
+
 if __name__ == "__main__":
     seed_all()
