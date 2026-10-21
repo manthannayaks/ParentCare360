@@ -39,6 +39,19 @@ htmlcov/
 # Logs
 *.log
 backend.log
+frontend.log
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Reports & Temporary Artifacts
+*.pdf
+preview_pages/
+preview_*.png
 
 # Node & Frontend
 node_modules/

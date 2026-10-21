@@ -1,0 +1,318 @@
+# ParentCare360: Chronological Development Workflow & Engineering Timeline
+
+This document provides a factual, evidence-backed chronicle of the engineering evolution of **ParentCare360 (Comprehensive Remote Elder-Care Coordination and Monitoring System)** from initial problem inception in August 2026 to deployment and final release preparation in October/November 2026.
+
+---
+
+## Week 1 / Period: 15 August to 17 August 2026
+- **Main Objective:** Problem identification, initial proposal formulation, and scope definition for remote elder care.
+- **Problem Being Addressed:** Independent senior citizens in urban and semi-urban Indian households experience severe coordination breakdown across multi-specialty clinical visits, verified home caregiver monitoring, and urgent household assistance. Remote adult children lack real-time visibility into day-to-day welfare and emergency conditions.
+- **What I Attempted:** 
+  - Explored architectural patterns for multi-stakeholder healthcare coordination systems.
+  - Drafted the initial ParentCare360 project charter and problem statement.
+  - Outlined data flow models connecting elderly parents, distributed family sponsors, certified nurses, and consulting clinicians.
+- **What Was Implemented:** 
+  - Initial system proposal document articulating core goals: automated risk alerting, unified care timelines, and verified caregiver check-ins.
+  - Formal entity mapping linking four primary personas (Parent, Family, Caregiver, Doctor).
+- **Files and Modules Changed:** 
+  - Initial project proposal drafts and scope notes.
+- **Technical Decisions:** 
+  - Decided to focus on a hybrid data engineering platform (relational store for state transitions combined with semi-structured JSON for telemetry) rather than a simple CRUD application.
+  - Decided against proprietary IoT hardware dependency in phase 1, opting for software-based check-ins, sensor stream emulation, and voice interfaces.
+- **Testing Performed:** 
+  - Stakeholder scenario walkthroughs and conceptual data flow validation.
+- **Evidence / Commit References:** 
+  - Initial project charter; feedback review notes from faculty evaluation.
+- **Issues Encountered:** 
+  - Faculty feedback highlighted that initial scope was overly broad and lacked formal data engineering rigour (e.g., pipeline orchestration, error quarantine, and index optimization).
+- **How the Issues Were Resolved:** 
+  - Refined project objectives to center on an orchestrated data pipeline (ingestion, 4-tier validation, Dead Letter Queue, and deterministic alert generation).
+- **Current Status:** Completed.
+- **Remaining Work:** Conduct formal market solution analysis and requirements breakdown.
+- **Next Week's Plan:** Perform comparative research on existing market solutions (Portea, Caily, DOR Care, Papa) and establish functional requirements.
+
+---
+
+## Week 2 / Period: 18 August to 29 August 2026
+- **Main Objective:** Competitive landscape analysis, stakeholder identification, and requirements engineering.
+- **Problem Being Addressed:** Establishing precise functional boundaries and architectural requirements that distinguish ParentCare360 from existing elderly care applications and commercial home-health services.
+- **What I Attempted:** 
+  - Analyzed commercial market solutions:
+    - *Portea / Apollo HomeCare:* Strong healthcare supply chain, but lacks transparent real-time telemetry, unified family timelines, and self-service caregiver arrival verification.
+    - *Caily / Papa:* Excellent companion care, but minimal integration with Indian clinical prescriptions, bilingual voice interaction, or data engineering audit pipelines.
+    - *DOR Care:* Focuses primarily on emergency response buttons without holistic care coordination or data quality quarantine.
+  - Surveyed senior citizens and non-resident Indian (NRI) family sponsors regarding daily friction points.
+- **What Was Implemented:** 
+  - Comprehensive Software Requirements Specification (SRS) detailing functional requirements (FR-1 through FR-12) and non-functional requirements (latency, concurrency, data retention).
+  - Persona interaction models and access boundaries across Parent, Family, Caregiver, and Doctor.
+- **Files and Modules Changed:** 
+  - Requirements specifications, architectural scope matrices.
+- **Technical Decisions:** 
+  - Defined the need for **role boundary isolation**: caregivers should never see sensitive family financial or personal records; family members should only view authorized clinical documents.
+  - Selected a mobile-first design philosophy with simplified touch targets for senior citizens.
+- **Testing Performed:** 
+  - Requirements traceability matrix validation; stakeholder boundary reviews.
+- **Evidence / Commit References:** 
+  - Requirements engineering artifacts; persona journey maps.
+- **Issues Encountered:** 
+  - Overlap between healthcare clinical data and operational home assistance created potential schema confusion.
+- **How the Issues Were Resolved:** 
+  - Decoupled clinical records (`prescriptions`, `appointments`) from operational tasks (`caregiver_visits`, `household_requests`).
+- **Current Status:** Completed.
+- **Remaining Work:** Design the physical database schema and operational data flow.
+- **Next Week's Plan:** Establish the relational schema, foreign key relationships, and data ingestion pipeline architecture.
+
+---
+
+## Week 3 / Period: 21 August to 1 September 2026
+- **Main Objective:** Relational data architecture, operational data modeling, and ETL design.
+- **Problem Being Addressed:** Designing an atomic, normalized relational storage schema capable of tracking complex multi-table healthcare coordination while maintaining sub-second query performance.
+- **What I Attempted:** 
+  - Designed third-normal-form (3NF) relational tables for parents, family contacts, doctors, appointments, caregivers, visits, tickets, alerts, and timeline events.
+  - Evaluated storage formats (PostgreSQL, SQLite, MongoDB, XML vs JSON granules).
+  - Drafted an automated ETL batch architecture to extract raw feeds, validate records, and persist to operational tables.
+- **What Was Implemented:** 
+  - SQLite database initialization script (`database/db.py`) establishing 9 core operational tables.
+  - Foreign key constraints with cascading deletes across dependent entities.
+  - Four-stage ETL batch processing module in `etl/` (`extract.py`, `validate.py`, `transform.py`, `load.py`).
+- **Files and Modules Changed:** 
+  - `database/db.py`
+  - `etl/extract.py`, `etl/validate.py`, `etl/transform.py`, `etl/load.py`, `etl/pipeline.py`
+  - `models/parent_model.py`, `models/caregiver_model.py`, `models/appointment_model.py`
+- **Technical Decisions:** 
+  - Chose **SQLite 3.9+ with Write-Ahead Logging (WAL)** for deterministic local prototyping, zero-administration deployments, and atomic ACID guarantees.
+  - Selected **JSON granules** for telemetry payloads and DLQ containment rather than XML to minimize payload byte overhead over Indian 2G/4G cellular networks.
+- **Testing Performed:** 
+  - Schema creation validation; foreign key integrity tests under mock record insertion.
+- **Evidence / Commit References:** 
+  - Initial database setup commits; `etl/pipeline.py` baseline execution scripts.
+- **Issues Encountered:** 
+  - Default SQLite file locking blocked concurrent reader processes during batch ingestion.
+- **How the Issues Were Resolved:** 
+  - Configured `PRAGMA journal_mode = WAL;` and `PRAGMA synchronous = NORMAL;`, allowing simultaneous non-blocking concurrent readers.
+- **Current Status:** Completed.
+- **Remaining Work:** Implement realistic seed data and an end-to-end interactive prototype.
+- **Next Week's Plan:** Develop synthetic seed generators, rule-based alert evaluator, and interactive UI views for Lab 4/5 evaluation.
+
+---
+
+## Week 4 / Period: 31 August to 11 September 2026
+- **Main Objective:** End-to-end interactive prototype development and Lab 4/5 engineering evaluation.
+- **Problem Being Addressed:** Moving from theoretical database scripts to an active, demonstrable system featuring real-time risk alerts, pipeline validation error isolation, and operational UI views.
+- **What I Attempted:** 
+  - Synthesized realistic Indian elder demographic profiles and clinical histories (`database/seed_data.py`).
+  - Implemented an automated rule-based alert evaluator (`utils/alert_engine.py`).
+  - Constructed an 11-view operational interface in Streamlit (`app.py` and `views/`).
+  - Prototyped a bilingual speech-to-text keyword extraction module (`utils/voice_proto.py`).
+- **What Was Implemented:** 
+  - Automated seeding populating 3 distinct elder scenarios: Ravi Kumar (cardiac patient), Savitri Sharma (diabetic care), and Ramesh Patel (recovering post-surgery).
+  - Core alert evaluation rules:
+    - Rule 1: Overdue Caregiver Visits (flags scheduled visits past due time).
+    - Rule 2: Upcoming Medical Appointments (48-hour lookahead for clinic visits).
+    - Rule 3: High-Priority Household Tickets (unresolved plumbing/electrical hazards).
+  - Validation error rejection logging isolating dirty CSV rows during ETL ingestion.
+  - Unified care timeline consolidating medical, caregiver, and emergency events.
+- **Files and Modules Changed:** 
+  - `database/seed_data.py`
+  - `utils/alert_engine.py`
+  - `utils/voice_proto.py`
+  - `app.py`, `views/*.py`
+  - `ParentCare360_Lab4_5_Progress_Report.md`
+- **Technical Decisions:** 
+  - Added sliding-window signature hashing in `utils/alert_engine.py` to prevent repeated alert spamming.
+  - Retained Streamlit for rapid faculty milestone evaluation without frontend framework build overhead.
+- **Testing Performed:** 
+  - Lab 4/5 viva demonstration scenario: ETL pipeline processed raw CSV inputs, isolating 2 invalid rows into error logs while loading 5 clean records. State transitions (`Upcoming` ➔ `Completed`) and alert triggers verified live.
+- **Evidence / Commit References:** 
+  - Lab 4/5 milestone report; Sprint Burndown (41/45 SP delivered, 91.1% velocity fulfillment, mean cycle time 1.88 days).
+- **Issues Encountered:** 
+  - Monolithic execution coupling: if alert evaluation or notification dispatch encountered an error, the entire upstream data ingestion would stall.
+- **How the Issues Were Resolved:** 
+  - Scheduled architectural decoupling into independent Apache Airflow micro-DAGs for Sprint 2 (Lab 6/7/8).
+- **Current Status:** Completed.
+- **Remaining Work:** Transition to decoupled micro-DAG architecture, physical indexing, and Dead Letter Queue.
+- **Next Week's Plan:** Design inter-DAG orchestration, Dead Letter Queue (DLQ), and composite B-Tree indexes.
+
+---
+
+## Week 5 / Period: 21 September to 3 October 2026
+- **Main Objective:** Data ingestion modularization, 4-tier cleansing, DLQ quarantine, and physical storage optimization.
+- **Problem Being Addressed:** Dirty data, schema anomalies, and missing foreign keys crashing ingestion pipelines; full table scans slowing periodic alert evaluation queries.
+- **What I Attempted:** 
+  - Decoupled ingestion into `dags/dag_telemetry_ingest.py` (DAG 1) and validation into `dags/dag_cleansing_dlq.py` (DAG 2).
+  - Formulated a 4-tier validation hierarchy to catch date syntax errors, orphan foreign keys, and physiological out-of-bound readings.
+  - Engineered a dedicated Dead Letter Queue (DLQ) table `quarantine_records` for zero-loss fault containment.
+  - Implemented and profiled composite B-Tree indexes over operational SQLite state tables.
+- **What Was Implemented:** 
+  - Batch UUID v4 (`_batch_id`) and UTC timestamp injection on every ingestion batch.
+  - 4-Tier Cleansing Engine:
+    - Tier 1: ISO-8601 regex date validation and non-null checks.
+    - Tier 2: Referential FK validation against live parent and caregiver tables.
+    - Tier 3: Semantic domain rules and physiological sensor bounds (HR 35–220 bpm; BP 70–240 mmHg).
+    - Tier 4: Hash deduplication over entity composite keys.
+  - Dead Letter Queue (`quarantine_records`) recording `(batch_id, source_feed, record_payload, error_code, error_message, quarantined_at)`.
+  - Five composite B-Tree indexes (`idx_visits_status_time`, `idx_appts_status_date`, `idx_reqs_priority_status`, `idx_alerts_parent_res`, `idx_quarantine_batch`).
+- **Files and Modules Changed:** 
+  - `dags/dag_telemetry_ingest.py`
+  - `dags/dag_cleansing_dlq.py`
+  - `database/db.py`
+- **Technical Decisions:** 
+  - Applied covering composite indexes directly aligned with the WHERE clause ordering of periodic alert queries.
+  - Enforced JSON payload containment in DLQ records rather than string serialization, enabling structured error inspection.
+- **Testing Performed:** 
+  - Query plan inspection via `EXPLAIN QUERY PLAN`: confirmed elimination of full table scans (`SEARCH TABLE ... USING COVERING INDEX`).
+  - Benchmarked 50,000 synthetic rows: query latency dropped from 185.0 ms to 0.22 ms (840x speedup).
+- **Evidence / Commit References:** 
+  - `database/db.py` composite index migrations; `assets/diagrams/indexing_benchmark.png`.
+- **Issues Encountered:** 
+  - String date comparisons produced incorrect results when dates did not conform strictly to ISO-8601 `YYYY-MM-DD`.
+- **How the Issues Were Resolved:** 
+  - Enforced strict Tier 1 regex validation rejecting non-ISO dates into the DLQ with error code `ERR_SYNTAX_DATE`.
+- **Current Status:** Completed.
+- **Remaining Work:** Implement sliding-window alert deduplication and inter-DAG event orchestration.
+- **Next Week's Plan:** Develop DAG 3 (Alert Engine), DAG 4 (Role Dispatcher), and the inter-DAG orchestrator.
+
+---
+
+## Week 6 / Period: 4 October to 11 October 2026
+- **Main Objective:** Alert engine deduplication, role-based dispatching, and inter-DAG pipeline orchestration.
+- **Problem Being Addressed:** Eliminating alert flooding storms (duplicate alarm cascade on sensor flapping) and protecting patient health privacy across caregiver versus family communication channels.
+- **What I Attempted:** 
+  - Developed `dags/dag_alert_engine.py` (DAG 3) featuring a stateful sliding-window SHA-256 deduplication cache.
+  - Developed `dags/dag_dispatcher.py` (DAG 4) implementing RBAC/ABAC privacy boundaries.
+  - Constructed the inter-DAG orchestrator (`dags/orchestrator.py`) coordinating all four micro-DAGs via Airflow dataset dependencies (`clean_events`).
+- **What Was Implemented:** 
+  - Inactivity Watchdog Rule (Dead-man switch): emits critical escalation alerts when `last_heartbeat` exceeds 8 hours.
+  - `alert_dedup_cache` table tracking SHA-256 signature hashes (`parent_id:alert_type:time_bucket`), first seen, last seen, and occurrence count.
+  - Role-based privacy masking: caregivers receive operational checklists with PII and clinical diagnoses masked; family sponsors receive full emergency escalations.
+  - Inter-DAG orchestrator supporting complete pipeline execution and controlled edge-case simulation.
+- **Files and Modules Changed:** 
+  - `dags/dag_alert_engine.py`
+  - `dags/dag_dispatcher.py`
+  - `dags/orchestrator.py`
+  - `dags/__init__.py`
+- **Technical Decisions:** 
+  - Used SHA-256 signatures over composite alert keys rather than simple database flags to provide cryptographic deduplication integrity.
+  - Implemented sliding-window suppression (1-hour window): exactly 1 alert emitted during a 40-spike storm, subsequent alarms update counter without dispatching duplicate notifications.
+- **Testing Performed:** 
+  - Simulated 40 rapid sensor triggers in 120 seconds: verified exactly 1 alert stored in `alerts` table and 39 suppressed in deduplication cache.
+- **Evidence / Commit References:** 
+  - `dags/orchestrator.py`; `assets/diagrams/pipeline_topology.png`; `assets/diagrams/dlq_distribution.png`.
+- **Issues Encountered:** 
+  - Clock skew between system time and simulated edge events caused invalid sliding window boundary calculations.
+- **How the Issues Were Resolved:** 
+  - Parameterized reference timestamps across all DAG functions (`current_time=None` defaults to `datetime.utcnow()`), enabling frozen-clock fixture evaluation.
+- **Current Status:** Completed.
+- **Remaining Work:** Build deterministic pytest test harness, REST API endpoints, and universal client application.
+- **Next Week's Plan:** Engineer deterministic test harness, build FastAPI service with RBAC endpoints, and construct modern mobile-first React frontend.
+
+---
+
+## Week 7 / Period: 12 October to 17 October 2026
+- **Main Objective:** Comprehensive test suite engineering, FastAPI backend services, React web client, and Capacitor Android packaging.
+- **Problem Being Addressed:** Replacing prototype Streamlit UI with an industry-grade mobile application offering dedicated, isolated experiences for each user role, alongside rigorous automated tests.
+- **What I Attempted:** 
+  - Built a deterministic test suite (`tests/test_deterministic_dags.py`) validating all 5 edge-case scenarios required by faculty.
+  - Built `api/main.py` with FastAPI, offering REST endpoints for authentication, connections, location sharing, prescriptions, and pipeline ops.
+  - Created a pure mobile-first React application (`frontend/`) using Vite and Lucide React.
+  - Packaged the frontend into a native Android APK using Capacitor and Gradle.
+  - Created a dedicated Admin Panel (`frontend/src/components/AdminPanel.jsx`) for test account creation and instant role switching.
+- **What Was Implemented:** 
+  - Deterministic test harness passing 100% of tests:
+    - `test_edge_inactivity_watchdog` (8-hour silence triggers critical alert in 0.04s)
+    - `test_edge_dedup_storm` (40 alarms in 120s suppressed to 1 alert in 0.02s)
+    - `test_edge_poison_pill_quarantine` (3 dirty rows isolated to DLQ, 2 clean rows saved in 0.03s)
+    - `test_edge_out_of_order_stream` (watermarking preserves chronology in 0.02s)
+    - `test_edge_role_based_dispatch_granularity` (PII masking verified in 0.02s)
+  - Mobile core features test suite (`tests/test_mobile_core_features.py`) passing 5 end-to-end API tests.
+  - Pure mobile phone view: role-based isolation (Parent, Family, Caregiver, Doctor, Admin) with zero desktop tabs to prevent role cross-contamination.
+  - Fixed self-connection bug: prevented users from connecting to their own invitation code.
+  - Production build: `ParentCare360.apk` generated via Gradle.
+- **Files and Modules Changed:** 
+  - `tests/test_deterministic_dags.py`, `tests/test_mobile_core_features.py`
+  - `api/main.py`
+  - `frontend/src/App.jsx`, `frontend/src/components/*.jsx`
+  - `frontend/android/`
+  - `build_apk.sh`
+- **Technical Decisions:** 
+  - Removed top desktop navbar to enforce strict role isolation: users only see the role they logged in as.
+  - Embedded Capacitor for single-codebase web and native Android APK distribution.
+- **Testing Performed:** 
+  - Full pytest execution: `python3 -m pytest -v` (10 passed, 0 failed in 1.16s).
+  - Native Android APK assembled and verified on mobile emulator/device.
+- **Evidence / Commit References:** 
+  - Commit `c30cebe`: complete mobile-first application and DE integration.
+  - Commit `04ca4b2`: pure mobile phone view, Admin Panel for test accounts, and self-connection fix.
+- **Issues Encountered:** 
+  - Users experienced "Failed to fetch" on Render free tier during cold starts (~30-50s) or when localhost:8000 was stored in browser storage.
+- **How the Issues Were Resolved:** 
+  - Added diagnostic network error handling in `FamilyExperience.jsx` explaining Render sleep cycles and providing backend configuration options.
+- **Current Status:** Completed.
+- **Remaining Work:** Integrate production SMS/Push notification gateways.
+- **Next Week's Plan:** Implement external telephony services (Twilio SMS and Web Push VAPID).
+
+---
+
+## Week 8 / Period: 18 October to 26 October 2026
+- **Main Objective:** External notification gateway integration (Twilio SMS & Web Push API) and live cloud connectivity.
+- **Problem Being Addressed:** Delivering critical alerts (e.g. Inactivity Watchdog, Overdue Caregiver) directly to family smartphones when the application is closed or in the background.
+- **What I Attempted:** 
+  - Evaluated Twilio Programmable SMS API and Firebase Cloud Messaging / Web Push (VAPID).
+  - Drafted notification dispatch worker in `dags/dag_dispatcher.py` to forward critical alerts to external notification gateways.
+  - Implemented network diagnostics and auto-wake ping handling for Render cloud deployment.
+- **What Was Implemented:** 
+  - In-app notification ledger (`notifications` table) with read/unread tracking.
+  - Diagnostic network error handler with automatic retry guidance in `FamilyExperience.jsx`.
+  - Configured Render Blueprint (`render.yaml`) hosting live FastAPI web service (`parentcare360-api.onrender.com`) and static frontend (`parentcare360-web.onrender.com`).
+- **Files and Modules Changed:** 
+  - `frontend/src/components/FamilyExperience.jsx`
+  - `render.yaml`
+  - Commit `0d551aa`: diagnostic network error handling for connection request and rebuild APK.
+- **Technical Decisions:** 
+  - Kept telephony credentials optional via environment variables (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`) so the core system functions autonomously in local/offline environments.
+- **Testing Performed:** 
+  - End-to-end cloud API ping verification via curl and browser live testing.
+  - Verified in-app notification creation upon high-priority requests and location sharing.
+- **Evidence / Commit References:** 
+  - Commit `0d551aa`; live backend `https://parentcare360-api.onrender.com`.
+- **Issues Encountered:** 
+  - Render free tier spins down after 15 minutes of inactivity, causing initial 40-second connection timeouts.
+- **How the Issues Were Resolved:** 
+  - Implemented health check pingers and explicit user guidance on the mobile login screen and connection modals.
+- **Current Status:** In Progress (In-app notifications complete; external SMS/VAPID gateway integration staged).
+- **Remaining Work:** Finalize Twilio webhook verification and production Web Push worker.
+- **Next Week's Plan:** Complete production release packaging, security audits, and final submission documentation.
+
+---
+
+## Week 9 / Period: 27 October to 10 November 2026
+- **Main Objective:** Production packaging, signed Android release, security hardening, and final validation.
+- **Problem Being Addressed:** Preparing the repository for complete, reproducible faculty evaluation, signed release distribution, and long-term maintainability.
+- **What I Attempted:** 
+  - Full repository cleanup: removing academic submission clutter, report drafts, and duplicate artifacts.
+  - Restructuring the codebase into an industry-standard layout (`config/`, `database/`, `scripts/`, `docs/`, `assets/diagrams/`).
+  - Comprehensive documentation suite creation (`docs/architecture/`, `docs/data-engineering/`, `docs/database/`, `docs/testing/`, `docs/deployment/`, `docs/decisions/`, `docs/troubleshooting/`).
+- **What Was Implemented:** 
+  - Production debug and signed APK build automation via Gradle.
+  - Complete architectural documentation, database schema definitions, and migration files.
+  - Detailed developer workflow timeline and project roadmap.
+  - Cleaned repository free of submission clutter and temporary files.
+- **Files and Modules Changed:** 
+  - Complete repository reorganization.
+  - `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `.env.example`.
+  - `docs/**/*.md`
+- **Technical Decisions:** 
+  - Preserved existing framework package roots (`api/`, `dags/`, `database/`, `frontend/`, `models/`, `etl/`, `tests/`) to ensure complete backwards compatibility with Render deployment blueprints, test suites, and Gradle scripts.
+- **Testing Performed:** 
+  - Complete 10-test test suite execution (`pytest -v`) — 100% pass rate.
+  - Vite frontend build (`npm run build`) — successful with 0 errors.
+  - Native Android project sync and Gradle compilation (`./gradlew assembleDebug`) — successful.
+- **Evidence / Commit References:** 
+  - Final repository restructuring commit.
+- **Issues Encountered:** 
+  - Ensuring zero broken links and maintaining all Render paths without disrupting live cloud instances.
+- **How the Issues Were Resolved:** 
+  - Verified path integrity across `render.yaml`, `start_system.sh`, and `build_apk.sh`.
+- **Current Status:** Ready for final evaluation.
+- **Remaining Work:** Post-submission cloud migration to managed PostgreSQL and production Twilio keys.
+- **Next Week's Plan:** Project release and post-course maintenance.
