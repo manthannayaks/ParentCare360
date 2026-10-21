@@ -265,7 +265,11 @@ export default function FamilyExperience({
         setShowConnectModal(false);
       }, 2500);
     } catch (err) {
-      setConnectError(err.message || 'No user found with this identifier');
+      if (err.message?.includes('fetch') || err.name === 'TypeError') {
+        setConnectError(`Network error connecting to API (${apiBase}). If the backend was sleeping (Render free tier), it takes ~30-45s to wake up. Please wait 10 seconds and tap Send again.`);
+      } else {
+        setConnectError(err.message || 'No user found with this identifier');
+      }
     } finally {
       setConnectLoading(false);
     }
