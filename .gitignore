@@ -57,6 +57,8 @@ preview_*.png
 node_modules/
 frontend/node_modules/
 frontend/dist/
+mobile/node_modules/
+mobile/.expo/
 .npm/
 
 # Android build outputs & caches

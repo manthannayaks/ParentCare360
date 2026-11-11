@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "ParentCare360",
+    "slug": "parentcare360",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#242c36"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.parentcare360.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ParentCare360 needs your location to share with family members during care check-ins and emergency SOS.",
+        "NSMicrophoneUsageDescription": "ParentCare360 needs microphone access to record voice requests and speech-to-text messages."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#242c36"
+      },
+      "package": "com.parentcare360.mobile",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "INTERNET"
+      ]
+    },
+    "extra": {
+      "defaultWebUrl": "https://parentcare360-web.onrender.com",
+      "eas": {
+        "projectId": "d02220d6-7d17-48f5-bd3c-d5e430c5ca92"
+      }
+    }
+  }
+}

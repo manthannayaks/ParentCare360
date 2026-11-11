@@ -27,7 +27,11 @@ import {
   X,
   PhoneCall,
   Navigation,
-  Compass
+  Compass,
+  Lock,
+  ChevronLeft,
+  Activity,
+  Heart
 } from 'lucide-react';
 import MobileBottomNav from './MobileBottomNav';
 
@@ -103,6 +107,41 @@ export default function FamilyExperience({
   const [newApptDate, setNewApptDate] = useState('2026-09-25');
   const [newApptTime, setNewApptTime] = useState('11:00 AM');
   const [newApptPurpose, setNewApptPurpose] = useState('Quarterly Blood Pressure & Vitals Evaluation');
+
+  const handleSelectTab = (newTab) => {
+    if (newTab === activeTab) return;
+    try {
+      window.history.pushState({ role: 'family', tab: newTab }, '');
+    } catch (_) {}
+    setActiveTab(newTab);
+  };
+
+  const openModal = (setter) => {
+    try {
+      window.history.pushState({ role: 'family', tab: activeTab, modal: true }, '');
+    } catch (_) {}
+    setter(true);
+  };
+
+  // Back button / Popstate handling: closes open modal first, or navigates back to previous tab / overview
+  useEffect(() => {
+    const onPopState = (e) => {
+      if (showConnectModal || showNewRequestModal || showRideCoordModal || showNewApptModal) {
+        setShowConnectModal(false);
+        setShowNewRequestModal(false);
+        setShowRideCoordModal(false);
+        setShowNewApptModal(false);
+        return;
+      }
+      if (e.state && e.state.tab) {
+        setActiveTab(e.state.tab);
+      } else {
+        setActiveTab('overview');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [showConnectModal, showNewRequestModal, showRideCoordModal, showNewApptModal]);
 
   const currentUserId = familyUser?.id || 2;
   const currentUserName = familyUser?.full_name || familyUser?.name || 'Sam';
@@ -359,8 +398,31 @@ export default function FamilyExperience({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {activeTab !== 'overview' && (
+            <button
+              onClick={() => handleSelectTab('overview')}
+              style={{
+                background: 'rgba(30, 41, 59, 0.7)',
+                border: '1px solid rgba(148, 163, 184, 0.25)',
+                color: '#e2e8f0',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Go Back to Overview"
+            >
+              <ChevronLeft size={14} />
+              <span>Back</span>
+            </button>
+          )}
+
           <button
-            onClick={() => setShowConnectModal(true)}
+            onClick={() => openModal(setShowConnectModal)}
             style={{
               background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
               color: '#fff',
@@ -869,140 +931,214 @@ export default function FamilyExperience({
         )}
 
         {/* ===================== TAB: LOCATION & RIDES (FEATURE 5) ===================== */}
-        {activeTab === 'travel' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#fff' }}>Location & Ride Coordination</h2>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Track arrival and arrange pickup</div>
+        {activeTab === 'travel' && (() => {
+          const displayLocation = latestSharedLocation || (parentLocation ? {
+            address: parentLocation.address,
+            latitude: parentLocation.latitude,
+            longitude: parentLocation.longitude,
+            shared_at: parentLocation.shared_at,
+            note: parentLocation.note,
+            battery_level: parentLocation.battery_level
+          } : null);
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#fff' }}>Location & Ride Coordination</h2>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>Real-time GPS tracking & travel assistance for {activeParentName}</div>
+                </div>
+                <button
+                  onClick={() => openModal(setShowRideCoordModal)}
+                  className="btn-primary"
+                  style={{ padding: '8px 12px', fontSize: '12px', background: '#d97706' }}
+                >
+                  <Car size={14} />
+                  <span>Coordinate Ride</span>
+                </button>
               </div>
-              <button
-                onClick={() => setShowRideCoordModal(true)}
-                className="btn-primary"
-                style={{ padding: '8px 12px', fontSize: '12px', background: '#d97706' }}
-              >
-                <Car size={14} />
-                <span>Coordinate Ride</span>
-              </button>
-            </div>
 
-            {/* Latest Shared Location Card */}
-            {latestSharedLocation ? (
-              <div className="card-glass" style={{ borderLeft: '4px solid #f59e0b' }}>
+              {/* Latest Shared Location Card */}
+              {displayLocation ? (
+                <div className="card-glass" style={{ borderLeft: '4px solid #f59e0b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#fbbf24', textTransform: 'uppercase' }}>
+                      📍 {activeParentName}'s Location
+                    </span>
+                    <span className={`freshness-tag freshness-${latestLocFreshness}`}>
+                      <span className="pulsing-dot" style={{ background: latestLocFreshness === 'current' ? '#10b981' : '#f59e0b' }}></span>
+                      {latestLocFreshness === 'current' ? 'Current (Live)' : latestLocFreshness === 'recent' ? 'Recent' : 'Recorded'}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '15px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
+                    {displayLocation.address}
+                  </div>
+
+                  {displayLocation.note && (
+                    <div style={{ fontSize: '12px', color: '#fef08a', background: 'rgba(245, 158, 11, 0.15)', padding: '8px 10px', borderRadius: '8px', marginBottom: '10px' }}>
+                      "{displayLocation.note}"
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>
+                    GPS: {displayLocation.latitude?.toFixed(4)}, {displayLocation.longitude?.toFixed(4)}
+                    {displayLocation.battery_level != null && ` • Battery: ${displayLocation.battery_level}%`}
+                    {displayLocation.shared_at && ` • Shared: ${displayLocation.shared_at}`}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <a
+                      href={`https://maps.google.com/?q=${displayLocation.latitude},${displayLocation.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        flex: 1,
+                        background: 'rgba(30, 41, 59, 0.9)',
+                        border: '1px solid rgba(148, 163, 184, 0.2)',
+                        color: '#fff',
+                        padding: '10px',
+                        borderRadius: '10px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        textDecoration: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <ExternalLink size={14} />
+                      <span>Open in Google Maps</span>
+                    </a>
+                  </div>
+                </div>
+              ) : locPermissionDenied ? (
+                <div className="card-glass" style={{ borderLeft: '4px solid #ef4444', textAlign: 'center', padding: '24px 16px' }}>
+                  <Lock size={28} color="#ef4444" style={{ margin: '0 auto 8px auto' }} />
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>Access Restricted: Location Sharing Not Authorized</div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                    {activeParentName} has not enabled location sharing with your account under privacy permissions.
+                  </div>
+                </div>
+              ) : (
+                <div className="card-glass" style={{ textAlign: 'center', padding: '24px 16px', color: '#94a3b8' }}>
+                  <MapPin size={28} color="#f59e0b" style={{ margin: '0 auto 8px auto' }} />
+                  <div>No location shared yet. When {activeParentName} taps "Share Location" on their device, their real-time coordinates will appear here.</div>
+                </div>
+              )}
+
+              {/* Active & Scheduled Travel Journeys */}
+              {travelJourneys && travelJourneys.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#60a5fa', marginBottom: '8px' }}>
+                    Active & Scheduled Travel Journeys
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {travelJourneys.map(j => (
+                      <div key={j.id} className="card-glass" style={{ borderLeft: '4px solid #3b82f6', padding: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>
+                            {j.origin} ➔ {j.destination}
+                          </span>
+                          <span className={`badge ${j.status === 'Completed' ? 'badge-success' : 'badge-info'}`}>{j.status}</span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                          Departure: {j.departure_time} • Expected Arrival: {j.arrival_time}
+                        </div>
+                        {j.current_location && (
+                          <div style={{ fontSize: '12px', color: '#93c5fd', marginTop: '4px' }}>
+                            📍 Current Status: {j.current_location}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Ride Status Tracker Section */}
+              <div className="card-glass" style={{ borderLeft: '4px solid #3b82f6' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#fbbf24', textTransform: 'uppercase' }}>
-                    Parent Shared Location
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#60a5fa', textTransform: 'uppercase' }}>
+                    Active Ride Coordination Status
                   </span>
-                  <span className={`freshness-tag freshness-${latestLocFreshness}`}>
-                    <span className="pulsing-dot" style={{ background: latestLocFreshness === 'current' ? '#10b981' : '#f59e0b' }}></span>
-                    {latestLocFreshness === 'current' ? 'Current (Live)' : latestLocFreshness === 'recent' ? 'Recent' : 'Stale'}
-                  </span>
+                  <span className="badge badge-info">{rideStatus}</span>
                 </div>
 
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
-                  📍 {latestSharedLocation.address}
+                <div style={{ fontSize: '13px', color: '#fff', marginBottom: '6px' }}>
+                  <strong>Pickup:</strong> {ridePickupLocation}
                 </div>
-
-                {latestSharedLocation.note && (
-                  <div style={{ fontSize: '12px', color: '#fef08a', background: 'rgba(245, 158, 11, 0.15)', padding: '8px 10px', borderRadius: '8px', marginBottom: '10px' }}>
-                    "{latestSharedLocation.note}"
+                <div style={{ fontSize: '13px', color: '#fff', marginBottom: '8px' }}>
+                  <strong>Destination:</strong> {rideDropoffLocation}
+                </div>
+                {rideDriverNotes && (
+                  <div style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '8px', background: 'rgba(59, 130, 246, 0.1)', padding: '6px 8px', borderRadius: '6px' }}>
+                    Note: {rideDriverNotes}
                   </div>
                 )}
 
-                <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>
-                  GPS: {latestSharedLocation.latitude?.toFixed(4)}, {latestSharedLocation.longitude?.toFixed(4)} • Shared at {latestSharedLocation.shared_at}
+                {/* Progress Steps */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', margin: '14px 0 8px 0' }}>
+                  {['Submitted', 'Acknowledged', 'Assistance Being Arranged', 'Completed'].map((st, idx) => {
+                    const isDone = (rideStatus === 'Completed') || (rideStatus === st) || (idx === 0);
+                    return (
+                      <div key={st} style={{ textAlign: 'center', flex: 1 }}>
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: isDone ? '#10b981' : '#334155',
+                          color: '#fff',
+                          fontSize: '10px',
+                          fontWeight: '800',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto 4px auto'
+                        }}>
+                          {idx + 1}
+                        </div>
+                        <div style={{ fontSize: '9px', color: isDone ? '#34d399' : '#64748b' }}>{st}</div>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                  <button
+                    onClick={() => openModal(setShowRideCoordModal)}
+                    className="btn-primary"
+                    style={{ flex: 1, padding: '8px 12px', fontSize: '12px' }}
+                  >
+                    Update Ride Progress
+                  </button>
                   <a
-                    href={`https://maps.google.com/?q=${latestSharedLocation.latitude},${latestSharedLocation.longitude}`}
+                    href={`https://maps.google.com/?q=${encodeURIComponent(ridePickupLocation)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      flex: 1,
                       background: 'rgba(30, 41, 59, 0.9)',
                       border: '1px solid rgba(148, 163, 184, 0.2)',
                       color: '#fff',
-                      padding: '10px',
-                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
                       fontSize: '12px',
                       fontWeight: '700',
                       textDecoration: 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
+                      gap: '4px'
                     }}
                   >
                     <ExternalLink size={14} />
-                    <span>Open in Google Maps</span>
+                    <span>View Route</span>
                   </a>
                 </div>
               </div>
-            ) : locPermissionDenied ? (
-              <div className="card-glass" style={{ borderLeft: '4px solid #ef4444', textAlign: 'center', padding: '24px 16px' }}>
-                <Lock size={28} color="#ef4444" style={{ margin: '0 auto 8px auto' }} />
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>Access Denied: Location Sharing Not Authorized</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-                  {activeParentName} has disabled location sharing with your account under consent permissions.
-                </div>
-              </div>
-            ) : (
-              <div className="card-glass" style={{ textAlign: 'center', padding: '24px 16px', color: '#94a3b8' }}>
-                <MapPin size={28} color="#f59e0b" style={{ margin: '0 auto 8px auto' }} />
-                <div>No active shared location. When {activeParentName} taps "Share My Location", it will appear here.</div>
-              </div>
-            )}
-
-            {/* Ride Status Tracker Section */}
-            <div className="card-glass" style={{ borderLeft: '4px solid #3b82f6' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', fontWeight: '700', color: '#60a5fa', textTransform: 'uppercase' }}>
-                  Active Ride Coordination Status
-                </span>
-                <span className="badge badge-info">{rideStatus}</span>
-              </div>
-
-              <div style={{ fontSize: '13px', color: '#fff', marginBottom: '6px' }}>
-                <strong>Pickup:</strong> {ridePickupLocation}
-              </div>
-              <div style={{ fontSize: '13px', color: '#fff', marginBottom: '8px' }}>
-                <strong>Destination:</strong> {rideDropoffLocation}
-              </div>
-
-              {/* Progress Steps */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', margin: '14px 0 8px 0' }}>
-                {['Submitted', 'Acknowledged', 'Assistance Being Arranged', 'Completed'].map((st, idx) => {
-                  const isDone = (rideStatus === 'Completed') || (rideStatus === st) || (idx === 0);
-                  return (
-                    <div key={st} style={{ textAlign: 'center', flex: 1 }}>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        background: isDone ? '#10b981' : '#334155',
-                        color: '#fff',
-                        fontSize: '10px',
-                        fontWeight: '800',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 4px auto'
-                      }}>
-                        {idx + 1}
-                      </div>
-                      <div style={{ fontSize: '9px', color: isDone ? '#34d399' : '#64748b' }}>{st}</div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic', marginTop: '8px' }}>
-                * Honest Integration Note: Status tracking coordinates external pickup fleet. No fake direct API booking claims.
-              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ===================== TAB: HEALTHCARE (FEATURE 3) ===================== */}
         {activeTab === 'care' && (
@@ -1010,10 +1146,10 @@ export default function FamilyExperience({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#fff' }}>Authorized Healthcare</h2>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Records authorized by {activeParentName}</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Prescriptions, vitals & medical schedule for {activeParentName}</div>
               </div>
               <button
-                onClick={() => setShowNewApptModal(true)}
+                onClick={() => openModal(setShowNewApptModal)}
                 className="btn-primary"
                 style={{ padding: '8px 12px', fontSize: '12px' }}
               >
@@ -1024,8 +1160,9 @@ export default function FamilyExperience({
 
             {/* Prescriptions Section (with Permission Verification) */}
             <div>
-              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#34d399', marginBottom: '8px' }}>
-                Prescriptions & Daily Medications
+              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#34d399', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Pill size={14} color="#34d399" />
+                <span>Prescriptions & Daily Medications</span>
               </div>
 
               {prescriptionsPermissionDenied ? (
@@ -1033,12 +1170,12 @@ export default function FamilyExperience({
                   <Lock size={24} color="#ef4444" style={{ margin: '0 auto 6px auto' }} />
                   <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff' }}>Prescription Access Not Authorized</div>
                   <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                    {activeParentName} has not granted permission to view prescription records.
+                    {activeParentName} has not granted permission to view prescription records under privacy permissions.
                   </div>
                 </div>
               ) : prescriptions.length === 0 ? (
                 <div className="card-glass" style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
-                  No prescriptions recorded yet.
+                  No active prescriptions recorded yet.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1065,10 +1202,49 @@ export default function FamilyExperience({
               )}
             </div>
 
+            {/* Caregiver Vitals & Nurse Check-ins */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#38bdf8', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Activity size={14} color="#38bdf8" />
+                <span>Caregiver Vitals & Home Check-ins</span>
+              </div>
+
+              {caregiverVisits && caregiverVisits.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {caregiverVisits.map((v) => (
+                    <div key={v.id} className="card-glass" style={{ borderLeft: '4px solid #0284c7', padding: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: '700', fontSize: '13px', color: '#fff' }}>
+                          Caregiver: {v.caregiver_name || 'Assigned Nurse'}
+                        </span>
+                        <span className={`badge ${v.status === 'Completed' ? 'badge-success' : 'badge-info'}`}>
+                          {v.status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                        🕒 Scheduled: {v.scheduled_datetime}
+                        {v.actual_completion_datetime && ` • Completed: ${v.actual_completion_datetime}`}
+                      </div>
+                      {v.visit_notes && (
+                        <div style={{ fontSize: '12px', color: '#bae6fd', marginTop: '6px', background: 'rgba(2, 132, 199, 0.15)', padding: '6px 10px', borderRadius: '6px' }}>
+                          🩺 {v.visit_notes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="card-glass" style={{ textAlign: 'center', color: '#94a3b8', padding: '14px' }}>
+                  No caregiver visit records yet.
+                </div>
+              )}
+            </div>
+
             {/* Doctor Appointments Section */}
             <div>
-              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#818cf8', marginBottom: '8px' }}>
-                Upcoming Doctor Appointments
+              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#818cf8', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Calendar size={14} color="#818cf8" />
+                <span>Upcoming Doctor Appointments</span>
               </div>
               {appointments.length === 0 ? (
                 <div className="card-glass" style={{ textAlign: 'center', color: '#94a3b8', padding: '14px' }}>
@@ -1421,7 +1597,7 @@ export default function FamilyExperience({
       <MobileBottomNav
         tabs={tabs}
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
       />
     </div>
   );

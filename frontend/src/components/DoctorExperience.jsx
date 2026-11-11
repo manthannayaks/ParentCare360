@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Stethoscope, 
   Calendar, 
@@ -24,6 +24,30 @@ export default function DoctorExperience({
   const [activeTab, setActiveTab] = useState('appts'); // 'appts' | 'patients' | 'docs' | 'profile'
   const [selectedAppt, setSelectedAppt] = useState(null);
   const [showNotesModal, setShowNotesModal] = useState(false);
+
+  const handleSelectTab = (newTab) => {
+    if (newTab === activeTab) return;
+    try {
+      window.history.pushState({ role: 'doctor', tab: newTab }, '');
+    } catch (_) {}
+    setActiveTab(newTab);
+  };
+
+  useEffect(() => {
+    const onPopState = (e) => {
+      if (showNotesModal) {
+        setShowNotesModal(false);
+        return;
+      }
+      if (e.state && e.state.tab) {
+        setActiveTab(e.state.tab);
+      } else {
+        setActiveTab('appts');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [showNotesModal]);
 
   // Doctor Notes Form State
   const [clinicalNotes, setClinicalNotes] = useState('');
@@ -344,7 +368,7 @@ export default function DoctorExperience({
       <MobileBottomNav
         tabs={tabs}
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
       />
     </div>
   );

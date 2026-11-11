@@ -4,6 +4,7 @@ from dags.dag_telemetry_ingest import run_telemetry_ingest
 from dags.dag_cleansing_dlq import run_cleansing_dlq
 from dags.dag_alert_engine import run_alert_engine
 from dags.dag_dispatcher import run_dispatcher
+from database.db import refresh_daily_family_summary
 
 def run_orchestrated_pipeline(synthetic_stream: list = None, reference_time: datetime = None):
     """
@@ -62,6 +63,17 @@ def run_orchestrated_pipeline(synthetic_stream: list = None, reference_time: dat
         "status": "SUCCESS",
         "duration_sec": round(dispatch_dur, 4),
         "details": f"Dispatched {dispatch_result['dispatched_count']} role-filtered alerts across Family, Caregiver, and Parent channels."
+    })
+
+    # Step 5: Refresh Materialized Views (O(1) Daily Family Command Center Summary)
+    t4 = time.time()
+    refreshed_summaries = refresh_daily_family_summary()
+    summary_dur = time.time() - t4
+    orchestration_log.append({
+        "dag": "refresh_daily_family_summary",
+        "status": "SUCCESS",
+        "duration_sec": round(summary_dur, 4),
+        "details": f"Pre-aggregated daily summary materialized for {refreshed_summaries} parents in O(1) query time."
     })
 
     total_duration = time.time() - start_time

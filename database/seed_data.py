@@ -203,6 +203,24 @@ def seed_all():
     VALUES (?, ?, ?, ?, ?, ?)
     """, notifications)
 
+    # 16. Seed Default Family Connection (Sam <-> Joe) & Permissions
+    cursor.execute("""
+    INSERT INTO family_connections (requester_user_id, recipient_user_id, relationship_type, status, created_at, responded_at)
+    VALUES (2, 1, 'Son', 'accepted', '2026-09-01 10:00:00', '2026-09-01 10:00:00')
+    """)
+    conn_id = cursor.lastrowid
+
+    cursor.execute("""
+    INSERT INTO permission_grants (connection_id, parent_user_id, family_user_id, view_prescriptions, view_appointments, view_documents, receive_voice, receive_location, receive_help, manage_caregiver, updated_at)
+    VALUES (?, 1, 2, 1, 1, 1, 1, 1, 1, 1, '2026-09-01 10:00:00')
+    """, (conn_id,))
+
+    # 17. Seed Initial Location Share from Joe to Sam
+    cursor.execute("""
+    INSERT INTO location_shares (sender_user_id, recipient_user_id, latitude, longitude, address, accuracy, battery_level, note, shared_at, status)
+    VALUES (1, 2, 12.9716, 77.5946, 'Kempegowda International Airport, Terminal 1, Pillar 4, Bengaluru', 12.0, 84, 'Waiting at arrival gate pillar 4 for pickup.', '2026-09-10 16:45:00', 'active')
+    """)
+
     conn.commit()
     conn.close()
     print("Database successfully seeded with synthetic data!")

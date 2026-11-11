@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Calendar, 
@@ -21,6 +21,30 @@ export default function CaregiverExperience({
   const [activeTab, setActiveTab] = useState('visits'); // 'visits' | 'checkin' | 'profile'
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
+
+  const handleSelectTab = (newTab) => {
+    if (newTab === activeTab) return;
+    try {
+      window.history.pushState({ role: 'caregiver', tab: newTab }, '');
+    } catch (_) {}
+    setActiveTab(newTab);
+  };
+
+  useEffect(() => {
+    const onPopState = (e) => {
+      if (showCheckinModal) {
+        setShowCheckinModal(false);
+        return;
+      }
+      if (e.state && e.state.tab) {
+        setActiveTab(e.state.tab);
+      } else {
+        setActiveTab('visits');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [showCheckinModal]);
 
   // Checkin Form State
   const [bpValue, setBpValue] = useState('124/80');
@@ -375,7 +399,7 @@ export default function CaregiverExperience({
       <MobileBottomNav
         tabs={tabs}
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
       />
     </div>
   );

@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:android": "vite build && npx cap sync android",
     "open:android": "npx cap open android",
+    "start:expo": "cd ../mobile && npx expo start",
     "lint": "oxlint",
     "preview": "vite preview"
   },

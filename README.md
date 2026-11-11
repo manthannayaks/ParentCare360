@@ -115,7 +115,7 @@ Verified against repository dependency manifests (`requirements.txt`, `package.j
 | **Data Pipelines** | Apache Airflow Dataset-Compatible Micro-DAGs, Pandas | Airflow Datasets / Pandas 2.0+ |
 | **Database & Storage** | SQLite 3.9+ in WAL Mode, B-Tree Indexes | PRAGMA journal_mode = WAL |
 | **Frontend Framework** | React, Vite, Lucide React Icons | React 19.2+ / Vite 8.3+ |
-| **Mobile Runtime** | Capacitor Android Native Container, Gradle | Capacitor 8.5+ / Android API 24+ |
+| **Mobile Runtime** | Capacitor Android Native & Expo React Native Shell | Capacitor 8.5+ & Expo 51+ / Android API 24+ |
 | **Testing Harness** | Pytest, HTTPX, AnyIO (Frozen-clock fixtures) | Pytest 8.3+ |
 | **Cloud Deployment** | Render Cloud Web Services & Cloudflare CDN | Infrastructure-as-Code (`render.yaml`) |
 
@@ -128,18 +128,16 @@ ParentCare360/
 ├── README.md                           # Master Project Overview & Setup Guide
 ├── CHANGELOG.md                        # Version Release History
 ├── CONTRIBUTING.md                     # Engineering Standards & Pull Request Guide
-├── .gitignore                          # Git Ignore Specification
-├── .env.example                        # Environment Configuration Template
+├── config.py                           # Centralized Path & Environment Settings
 ├── render.yaml                         # Render Cloud Infrastructure-as-Code Blueprint
 ├── requirements.txt                    # Python Production Dependencies
 ├── start_system.sh                     # Automated Full-Stack Dev Startup Script
-├── ParentCare360.apk                   # Pre-compiled Android Debug APK
+├── start_expo.sh                       # Automated Expo Mobile Runner
+├── build_apk.sh                        # One-click APK compilation wrapper
+├── ParentCare360.apk                   # Pre-compiled Standalone Android Debug APK
 │
 ├── api/                                # FastAPI Backend Application
 │   └── main.py                         # REST Endpoints, CORS & Startup Seeding
-│
-├── config/                             # Centralized Environment Settings
-│   └── settings.py                     # Environment Variable Bindings
 │
 ├── dags/                               # Event-Driven Airflow Micro-DAGs
 │   ├── dag_telemetry_ingest.py         # DAG 1: Telemetry Batch Ingestion
@@ -147,10 +145,6 @@ ParentCare360/
 │   ├── dag_alert_engine.py             # DAG 3: Alert Engine & Sliding SHA-256 Dedup
 │   ├── dag_dispatcher.py               # DAG 4: Role-Based Dispatch & Privacy Masking
 │   └── orchestrator.py                 # Inter-DAG Orchestration & Edge Simulator
-│
-├── data/                               # Persistent Storage Directory
-│   ├── parentcare360.db                # SQLite Operational WAL Database
-│   └── raw/                            # Sample CSV Feeds (Appointments & Requests)
 │
 ├── database/                           # Relational Schema, Migrations & Seeds
 │   ├── db.py                           # SQLite Connection, DDL Tables & Indexes
@@ -162,14 +156,13 @@ ParentCare360/
 │       ├── 001_initial_core_schema.sql # Core Baseline Migration
 │       └── 002_mobile_features_and_indexes.sql # Mobile Features & B-Tree Indexes
 │
-├── data-engineering/                   # Data Engineering Subsystem Documentation
-│   ├── README.md                       # Pipeline Architecture & Flow
-│   ├── ingestion/                      # Ingestion Standards & Batch UUIDs
-│   ├── cleansing/                      # 4-Tier Cleansing Hierarchy
-│   ├── quarantine/                     # DLQ Schema & Zero-Loss Guarantees
-│   ├── orchestration/                  # Dataset Signals & Execution Models
-│   ├── alert-engine/                   # Operational Rules & Deduplication Cache
-│   └── schemas/                        # W3C PROV Lineage & Domain Schemas
+├── data/                               # Persistent Storage Directory
+│   ├── parentcare360.db                # SQLite Operational WAL Database
+│   └── raw/                            # Sample CSV Feeds (Appointments & Requests)
+│
+├── utils/                              # Production Engines & Voice Parsers
+│   ├── alert_engine.py                 # Alert Evaluator & Sliding SHA-256 Dedup
+│   └── voice_proto.py                  # Bilingual Speech-to-Text Keyword Parser
 │
 ├── frontend/                           # Mobile-First Client Application
 │   ├── package.json                    # Node.js Dependencies & Build Scripts
@@ -186,6 +179,15 @@ ParentCare360/
 │   │       ├── AdminPanel.jsx          # Test User Creator & Instant Switcher
 │   │       └── OpsDagMode.jsx          # Pipeline Orchestrator & Edge Simulator
 │   └── android/                        # Native Android Studio / Gradle Project
+│
+├── mobile/                             # Expo / React Native Mobile Application
+│   ├── App.js                          # Native WebView + BackHandler + Status Bar + URL Switcher
+│   ├── app.json                        # Expo Project Manifest & Permissions
+│   ├── eas.json                        # EAS Build Configuration for Cloud APK Generation
+│   ├── package.json                    # Expo, React Native & EAS CLI dependencies
+│   ├── babel.config.js                 # Babel preset configuration
+│   ├── assets/                         # Native Adaptive Icons & Splash Screens
+│   └── README.md                       # Expo Go & EAS Build Guide
 │
 ├── tests/                              # Automated Test Harness
 │   ├── test_deterministic_dags.py      # 5 Edge-Case Pipeline Tests (Frozen Clocks)

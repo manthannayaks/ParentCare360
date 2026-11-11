@@ -67,6 +67,9 @@ export default function App() {
   const handleSelectRole = (role, id, name, fullUserData = null) => {
     const user = fullUserData || { role, id, name };
     setCurrentUser(user);
+    try {
+      window.history.pushState({ screen: 'role_view', role: user.role }, '');
+    } catch (_) {}
     localStorage.setItem('parentcare360_current_user', JSON.stringify(user));
     if (role === 'elder' || role === 'parent') {
       setSelectedParentId(user.id || id);

@@ -95,6 +95,8 @@ class RequestCreate(BaseModel):
 class VoiceInput(BaseModel):
     parent_id: int
     speech_text: str
+    audio_data: Optional[str] = None
+    language: Optional[str] = "en-IN"
 
 class VisitCheckin(BaseModel):
     visit_id: int
@@ -454,23 +456,80 @@ def create_request(data: RequestCreate):
 
 @app.post("/api/requests/voice-transcribe")
 def voice_transcribe(data: VoiceInput):
-    """Bilingual Hindi/English Voice NLP Prototype Parser."""
-    parsed = parse_voice_text(data.speech_text)
+    """Bilingual Hindi/English Voice NLP Parser with Graceful Caregiver Degradation."""
     conn = get_connection()
     cursor = conn.cursor()
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    is_fallback = False
+    parsed = None
+    speech_clean = data.speech_text.strip() if data.speech_text else ""
+
+    if speech_clean:
+        try:
+            parsed = parse_voice_text(speech_clean)
+        except Exception:
+            parsed = None
+
+    if not parsed or (parsed.get("category") == "General" and not parsed.get("title")):
+        is_fallback = True
+        title = f"🎙️ Audio Voice Note ({created_at[11:16]})"
+        category = "Voice Note"
+        priority = "High"
+        notes = f"Raw audio preserved. Automated NLP parsing was inconclusive. Audio memo: '{speech_clean or 'Voice recording attached'}'"
+    else:
+        title = parsed["title"]
+        category = parsed["category"]
+        priority = parsed["priority"]
+        notes = f"Voice dictation: '{speech_clean}'"
+
     cursor.execute("""
-    INSERT INTO household_requests (parent_id, title, category, priority, status, created_at, notes)
-    VALUES (?, ?, ?, ?, 'Pending', ?, ?)
-    """, (data.parent_id, parsed["title"], parsed["category"], parsed["priority"], created_at, f"Voice dictation: '{data.speech_text}'"))
+    INSERT INTO household_requests (parent_id, title, category, priority, status, created_at, notes, assigned_to)
+    VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?)
+    """, (data.parent_id, title, category, priority, created_at, notes, "Caregiver" if is_fallback else None))
     req_id = cursor.lastrowid
+
+    # If raw audio was provided, preserve it into voice_messages for Caregiver playback
+    if data.audio_data:
+        cursor.execute("SELECT id FROM users WHERE role = 'caregiver' LIMIT 1")
+        cg = cursor.fetchone()
+        cg_id = cg["id"] if cg else 3
+        cursor.execute("""
+        INSERT INTO voice_messages (sender_user_id, recipient_user_id, audio_data, transcript, language, status, duration_seconds, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+        """, (data.parent_id, cg_id, data.audio_data, speech_clean or "Audio Voice Memo", data.language or "hi-IN", "Audio Preserved (Needs Review)", created_at))
+
     conn.commit()
     conn.close()
+
     return {
         "status": "Created",
         "id": req_id,
-        "parsed_metadata": parsed
+        "is_fallback": is_fallback,
+        "parsed_metadata": parsed if not is_fallback else None,
+        "routed_to": "Caregiver" if is_fallback else "General"
     }
+
+# 4.1 O(1) Pre-Aggregated Family Command Center Summary
+@app.get("/api/family/summary/{parent_id}")
+def get_family_summary(parent_id: int):
+    """
+    O(1) Pre-aggregated Family Command Center summary.
+    Retrieves the materialized single row from daily_family_summary.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM daily_family_summary WHERE parent_id = ?", (parent_id,))
+    row = cursor.fetchone()
+    if not row:
+        from database.db import refresh_daily_family_summary
+        refresh_daily_family_summary(parent_id)
+        cursor.execute("SELECT * FROM daily_family_summary WHERE parent_id = ?", (parent_id,))
+        row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return {"parent_id": parent_id, "status": "Not Found"}
 
 # 5. Alerts
 @app.get("/api/alerts")

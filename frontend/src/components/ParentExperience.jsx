@@ -80,6 +80,33 @@ export default function ParentExperience({
   const [newRxDoctor, setNewRxDoctor] = useState('Dr. A. K. Sharma');
   const [newRxInstructions, setNewRxInstructions] = useState('');
 
+  const handleSelectTab = (newTab) => {
+    if (newTab === activeTab) return;
+    try {
+      window.history.pushState({ role: 'parent', tab: newTab }, '');
+    } catch (_) {}
+    setActiveTab(newTab);
+  };
+
+  useEffect(() => {
+    const onPopState = (e) => {
+      if (showSosModal || showPermissionsModal || showHelpModal || showAddRxModal) {
+        setShowSosModal(false);
+        setShowPermissionsModal(false);
+        setShowHelpModal(false);
+        setShowAddRxModal(false);
+        return;
+      }
+      if (e.state && e.state.tab) {
+        setActiveTab(e.state.tab);
+      } else {
+        setActiveTab('home');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [showSosModal, showPermissionsModal, showHelpModal, showAddRxModal]);
+
   // Voice State (Real Audio + Speech-to-Text)
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -1670,7 +1697,7 @@ export default function ParentExperience({
       <MobileBottomNav
         tabs={tabs}
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
       />
     </div>
   );

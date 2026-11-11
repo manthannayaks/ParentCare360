@@ -361,6 +361,27 @@ def init_db():
     )
     """)
 
+    # 23. Materialized Daily Family Summary (Pre-aggregated O(1) Family Command Center View)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS daily_family_summary (
+        parent_id INTEGER PRIMARY KEY,
+        summary_date TEXT NOT NULL,
+        latest_heart_rate REAL,
+        latest_systolic_bp REAL,
+        latest_diastolic_bp REAL,
+        latest_glucose REAL,
+        latest_spo2 REAL,
+        active_alerts_count INTEGER DEFAULT 0,
+        upcoming_rides_count INTEGER DEFAULT 0,
+        pending_requests_count INTEGER DEFAULT 0,
+        last_caregiver_visit_notes TEXT,
+        last_known_location TEXT,
+        last_known_battery INTEGER,
+        last_updated TEXT NOT NULL,
+        FOREIGN KEY (parent_id) REFERENCES parents (id) ON DELETE CASCADE
+    )
+    """)
+
     # Migrate columns if missing
     cursor.execute("PRAGMA table_info(appointments)")
     appt_cols = [c[1] for c in cursor.fetchall()]
@@ -387,9 +408,119 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications (user_id, read_at);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_voice_recip ON voice_messages (recipient_user_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_loc_share_recip ON location_shares (recipient_user_id);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_dfs_parent_date ON daily_family_summary (parent_id, summary_date);")
 
     conn.commit()
     conn.close()
+
+def refresh_daily_family_summary(target_parent_id: int = None):
+    """
+    Materializes a single-row aggregated summary per parent for O(1) query time
+    on the Family/Child command center dashboard.
+    Pre-aggregates latest vitals, active alerts, upcoming rides, caregiver visit notes,
+    and last known GPS location.
+    """
+    import re
+    from datetime import datetime
+    conn = get_connection()
+    cursor = conn.cursor()
+    now_dt = datetime.now()
+    now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+    today_str = now_dt.strftime("%Y-%m-%d")
+
+    if target_parent_id:
+        cursor.execute("SELECT id FROM parents WHERE id = ?", (target_parent_id,))
+        parents_to_refresh = cursor.fetchall()
+    else:
+        cursor.execute("SELECT id FROM parents")
+        parents_to_refresh = cursor.fetchall()
+
+    refreshed_count = 0
+    for p_row in parents_to_refresh:
+        pid = p_row["id"]
+
+        # 1. Active alerts count
+        cursor.execute("SELECT COUNT(*) as c FROM alerts WHERE parent_id = ? AND is_resolved = 0", (pid,))
+        active_alerts_cnt = cursor.fetchone()["c"]
+
+        # 2. Upcoming rides count
+        cursor.execute("SELECT COUNT(*) as c FROM travel_journeys WHERE parent_id = ? AND status IN ('Scheduled', 'En Route')", (pid,))
+        upcoming_rides_cnt = cursor.fetchone()["c"]
+
+        # 3. Pending requests count
+        cursor.execute("SELECT COUNT(*) as c FROM household_requests WHERE parent_id = ? AND status = 'Pending'", (pid,))
+        pending_reqs_cnt = cursor.fetchone()["c"]
+
+        # 4. Last caregiver visit notes and vitals if available
+        cursor.execute("""
+        SELECT visit_notes, scheduled_datetime 
+        FROM caregiver_visits 
+        WHERE parent_id = ? 
+        ORDER BY id DESC LIMIT 1
+        """, (pid,))
+        last_visit = cursor.fetchone()
+        last_notes = last_visit["visit_notes"] if last_visit else "Routine wellness check"
+
+        hr, sys_bp, dia_bp, gluc, spo2 = 74.0, 122.0, 80.0, 108.0, 98.0
+        if last_notes:
+            bp_match = re.search(r"BP:\s*(\d+)/(\d+)", last_notes)
+            if bp_match:
+                sys_bp = float(bp_match.group(1))
+                dia_bp = float(bp_match.group(2))
+            pulse_match = re.search(r"Pulse:\s*(\d+)", last_notes)
+            if pulse_match:
+                hr = float(pulse_match.group(1))
+            gluc_match = re.search(r"Glucose:\s*(\d+)", last_notes)
+            if gluc_match:
+                gluc = float(gluc_match.group(1))
+
+        # 5. Last known location
+        cursor.execute("""
+        SELECT address, battery_level 
+        FROM location_shares 
+        WHERE sender_user_id = ? 
+        ORDER BY id DESC LIMIT 1
+        """, (pid,))
+        loc_row = cursor.fetchone()
+        if not loc_row:
+            cursor.execute("SELECT address, battery_level FROM parent_locations WHERE parent_id = ? ORDER BY id DESC LIMIT 1", (pid,))
+            loc_row = cursor.fetchone()
+
+        last_loc = loc_row["address"] if loc_row else "Home, Bangalore"
+        last_bat = loc_row["battery_level"] if loc_row and loc_row["battery_level"] else 85
+
+        # Upsert into daily_family_summary
+        cursor.execute("""
+        INSERT INTO daily_family_summary (
+            parent_id, summary_date, latest_heart_rate, latest_systolic_bp, latest_diastolic_bp,
+            latest_glucose, latest_spo2, active_alerts_count, upcoming_rides_count,
+            pending_requests_count, last_caregiver_visit_notes, last_known_location,
+            last_known_battery, last_updated
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(parent_id) DO UPDATE SET
+            summary_date = excluded.summary_date,
+            latest_heart_rate = excluded.latest_heart_rate,
+            latest_systolic_bp = excluded.latest_systolic_bp,
+            latest_diastolic_bp = excluded.latest_diastolic_bp,
+            latest_glucose = excluded.latest_glucose,
+            latest_spo2 = excluded.latest_spo2,
+            active_alerts_count = excluded.active_alerts_count,
+            upcoming_rides_count = excluded.upcoming_rides_count,
+            pending_requests_count = excluded.pending_requests_count,
+            last_caregiver_visit_notes = excluded.last_caregiver_visit_notes,
+            last_known_location = excluded.last_known_location,
+            last_known_battery = excluded.last_known_battery,
+            last_updated = excluded.last_updated
+        """, (
+            pid, today_str, hr, sys_bp, dia_bp, gluc, spo2,
+            active_alerts_cnt, upcoming_rides_cnt, pending_reqs_cnt,
+            last_notes, last_loc, last_bat, now_str
+        ))
+        refreshed_count += 1
+
+    conn.commit()
+    conn.close()
+    return refreshed_count
 
 if __name__ == "__main__":
     init_db()
